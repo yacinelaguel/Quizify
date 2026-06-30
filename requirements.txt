@@ -1,24 +1,10 @@
-# Core FastAPI + async web
 fastapi==0.111.0
 uvicorn[standard]==0.29.0
 httpx==0.27.0
 python-multipart==0.0.9
-
-# Database
 sqlalchemy==2.0.30
-alembic==1.13.1
-
-# PDF processing
-ydf==4.2.0
-
-# Pydantic validation
+pypdf==4.2.0
 pydantic==2.7.1
-
-# Utilities
 aiofiles==23.2.1
-
-# Templates
 jinja2==3.1.4
-
-# Production (optional, for Render)
 gunicorn==21.2.0
