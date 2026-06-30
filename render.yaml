@@ -6,6 +6,7 @@ services:
   - type: web
     name: quizify
     env: python
+    pythonVersion: 3.11
     plan: free
     branch: main
     buildCommand: pip install -r requirements.txt
