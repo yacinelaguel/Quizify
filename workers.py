@@ -26,7 +26,7 @@ logger = logging.getLogger("quizify.workers")
 # ─────────────────────────────────────────────────────────────────────────────
 #  CONFIG
 # ─────────────────────────────────────────────────────────────────────────────
-GEMINI_API_KEY  = "AQ.Ab8RN6JYUodZHF6YkzgYqvYOC1iDnOu6hXaAHx_G8sS9ec0V9Q"
+GEMINI_API_KEY = "AIzaSyCf7qJxpSwqEiXeNNcF7pK5-YFZvPKAhTg"
 GEMINI_MODEL    = "gemini-1.5-flash-latest"
 GEMINI_BASE_URL = (
     "https://generativelanguage.googleapis.com/v1beta/models/"
