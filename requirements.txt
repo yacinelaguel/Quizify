@@ -9,11 +9,10 @@ sqlalchemy==2.0.30
 alembic==1.13.1
 
 # PDF processing
-pypdf==4.2.0
+ydf==4.2.0
 
 # Pydantic validation
 pydantic==2.7.1
-pydantic-settings==2.2.1
 
 # Utilities
 aiofiles==23.2.1
