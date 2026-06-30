@@ -1,0 +1,1692 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quizify — اختبارات من دروسك</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;900&family=Space+Grotesk:wght@300;400;500;600;700&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <style>
+    /* ═══════════════════════════════════════════════════════════════════
+       DESIGN TOKENS — From your palette images
+       Image 1: Jacarta #3A345B, Queen Pink #F3C8DD, Middle Purple #D183A9, Old Lavender #71557A, Brown Chocolate #4B1535
+       Image 4: #F3CCDE → #D6A8C4 → #BA88AE → #9E6899 → #5B3765
+    ═══════════════════════════════════════════════════════════════════ */
+    :root {
+      /* Core palette */
+      --jacarta:       #3A345B;
+      --queen-pink:    #F3C8DD;
+      --mid-purple:    #D183A9;
+      --old-lavender:  #71557A;
+      --brown-choc:    #4B1535;
+
+      /* Gradient scale */
+      --scale-1: #F3CCDE;
+      --scale-2: #D6A8C4;
+      --scale-3: #BA88AE;
+      --scale-4: #9E6899;
+      --scale-5: #5B3765;
+
+      /* UI derived */
+      --bg-deepest:  #0e0718;
+      --bg-deep:     #160e2a;
+      --bg-mid:      #1f1340;
+      --bg-card:     #251547;
+      --bg-card-2:   #2d1a54;
+      --border-soft: rgba(186,136,174,0.18);
+      --border-med:  rgba(209,131,169,0.35);
+      --border-hot:  rgba(209,131,169,0.7);
+      --text-main:   #f0e8f5;
+      --text-soft:   #c4a8d4;
+      --text-muted:  #8a6a9a;
+      --accent:      #D183A9;
+      --accent-hot:  #e89abe;
+      --glow:        rgba(209,131,169,0.3);
+      --glow-strong: rgba(209,131,169,0.5);
+      --success:     #6ee7b7;
+      --danger:      #fca5a5;
+      --warning:     #fcd34d;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Cairo', sans-serif;
+      background: var(--bg-deepest);
+      color: var(--text-main);
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* ── Scrollbar ─────────────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: var(--bg-deepest); }
+    ::-webkit-scrollbar-thumb { background: var(--scale-5); border-radius: 3px; }
+
+    /* ══════════════════════════════════════════════════════════════════
+       ANIMATIONS
+    ══════════════════════════════════════════════════════════════════ */
+    @keyframes float-a {
+      0%,100% { transform: translateY(0px) rotate(-2deg); }
+      50%      { transform: translateY(-14px) rotate(2deg); }
+    }
+    @keyframes float-b {
+      0%,100% { transform: translateY(0px) rotate(1deg); }
+      50%      { transform: translateY(-10px) rotate(-3deg); }
+    }
+    @keyframes float-c {
+      0%,100% { transform: translateY(0px); }
+      50%      { transform: translateY(-18px); }
+    }
+    @keyframes orb-drift {
+      0%,100% { transform: translate(0,0) scale(1); opacity:0.35; }
+      33%      { transform: translate(40px,-30px) scale(1.15); opacity:0.5; }
+      66%      { transform: translate(-25px,20px) scale(0.9); opacity:0.25; }
+    }
+    @keyframes shimmer-sweep {
+      0%   { background-position: -300% center; }
+      100% { background-position: 300% center; }
+    }
+    @keyframes slide-up {
+      from { opacity:0; transform:translateY(28px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    @keyframes fade-in {
+      from { opacity:0; }
+      to   { opacity:1; }
+    }
+    @keyframes spin-ring {
+      to { transform: rotate(360deg); }
+    }
+    @keyframes pulse-border {
+      0%,100% { border-color: rgba(209,131,169,0.3); box-shadow: 0 0 20px rgba(209,131,169,0.1); }
+      50%      { border-color: rgba(209,131,169,0.7); box-shadow: 0 0 40px rgba(209,131,169,0.3); }
+    }
+    @keyframes skeleton-wave {
+      0%   { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+    @keyframes count-up {
+      from { opacity:0; transform: scale(0.8); }
+      to   { opacity:1; transform: scale(1); }
+    }
+    @keyframes reveal-bar {
+      from { width: 0; }
+      to   { width: var(--w); }
+    }
+    @keyframes ping-dot {
+      0%,100% { transform: scale(1); opacity:1; }
+      50%      { transform: scale(1.4); opacity:0.6; }
+    }
+
+    /* Utility animation classes */
+    .fa  { animation: float-a 4s ease-in-out infinite; }
+    .fb  { animation: float-b 5.5s ease-in-out infinite 0.8s; }
+    .fc  { animation: float-c 3.8s ease-in-out infinite 1.6s; }
+    .slide-up { animation: slide-up 0.55s cubic-bezier(0.22,1,0.36,1) forwards; }
+    .fade-in  { animation: fade-in 0.4s ease forwards; }
+
+    /* ══════════════════════════════════════════════════════════════════
+       BACKGROUND LAYER
+    ══════════════════════════════════════════════════════════════════ */
+    .bg-layer {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+    }
+    .bg-gradient-base {
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 15% 0%, rgba(58,52,91,0.6) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 85% 100%, rgba(75,21,53,0.5) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 40% at 50% 50%, rgba(113,85,122,0.15) 0%, transparent 70%),
+        linear-gradient(160deg, #0e0718 0%, #160e2a 50%, #0e0718 100%);
+    }
+    .orb {
+      position: absolute; border-radius: 50%; filter: blur(80px); pointer-events: none;
+      animation: orb-drift 14s ease-in-out infinite;
+    }
+
+    /* ══════════════════════════════════════════════════════════════════
+       GLASSMORPHISM COMPONENTS
+    ══════════════════════════════════════════════════════════════════ */
+    .glass {
+      background: rgba(255,255,255,0.03);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--border-soft);
+    }
+    .glass-card {
+      background: linear-gradient(145deg, rgba(37,21,71,0.85) 0%, rgba(22,14,42,0.95) 100%);
+      backdrop-filter: blur(24px);
+      border: 1px solid var(--border-soft);
+      border-radius: 20px;
+      transition: all 0.32s cubic-bezier(0.4,0,0.2,1);
+    }
+    .glass-card:hover {
+      border-color: var(--border-med);
+      transform: translateY(-5px);
+      box-shadow: 0 24px 60px rgba(209,131,169,0.12), 0 0 0 1px rgba(209,131,169,0.08);
+    }
+    .card-cram {
+      background: linear-gradient(145deg, rgba(75,21,53,0.7) 0%, rgba(91,55,101,0.5) 100%);
+      border: 1px solid rgba(209,131,169,0.4);
+      animation: pulse-border 2.8s ease-in-out infinite;
+    }
+    .card-cram:hover {
+      background: linear-gradient(145deg, rgba(75,21,53,0.9) 0%, rgba(91,55,101,0.7) 100%);
+      transform: translateY(-7px) scale(1.02);
+      box-shadow: 0 28px 70px rgba(209,131,169,0.25);
+    }
+
+    /* ══════════════════════════════════════════════════════════════════
+       TYPOGRAPHY
+    ══════════════════════════════════════════════════════════════════ */
+    .text-shimmer {
+      background: linear-gradient(90deg, var(--scale-1), var(--scale-3), var(--mid-purple), var(--scale-2), var(--scale-1));
+      background-size: 300% auto;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: shimmer-sweep 4s linear infinite;
+    }
+    .text-gradient {
+      background: linear-gradient(135deg, var(--queen-pink), var(--mid-purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .heading-display {
+      font-family: 'Cairo', sans-serif;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+    }
+
+    /* ══════════════════════════════════════════════════════════════════
+       NAVIGATION
+    ══════════════════════════════════════════════════════════════════ */
+    .nav-bar {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(14,7,24,0.75);
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+      border-bottom: 1px solid var(--border-soft);
+      padding: 0 24px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .logo-mark {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--jacarta), var(--old-lavender));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+      box-shadow: 0 4px 20px rgba(209,131,169,0.3);
+    }
+    .nav-pill {
+      padding: 7px 18px;
+      border-radius: 50px;
+      border: 1px solid var(--border-soft);
+      background: transparent;
+      color: var(--text-soft);
+      font-family: 'Cairo', sans-serif;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.22s ease;
+    }
+    .nav-pill:hover { border-color: var(--border-med); color: var(--text-main); }
+    .nav-pill.active {
+      background: linear-gradient(135deg, rgba(58,52,91,0.8), rgba(113,85,122,0.6));
+      border-color: var(--border-med);
+      color: white;
+      box-shadow: 0 0 20px rgba(209,131,169,0.15);
+    }
+
+    /* ══════════════════════════════════════════════════════════════════
+       BUTTONS
+    ══════════════════════════════════════════════════════════════════ */
+    .btn-main {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 14px 36px;
+      background: linear-gradient(135deg, var(--jacarta) 0%, var(--old-lavender) 50%, var(--mid-purple) 100%);
+      border: 1px solid rgba(209,131,169,0.4);
+      border-radius: 50px;
+      color: white;
+      font-family: 'Cairo', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.28s cubic-bezier(0.4,0,0.2,1);
+      position: relative;
+      overflow: hidden;
+      text-decoration: none;
+    }
+    .btn-main::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.05), transparent);
+      opacity: 0; transition: opacity 0.28s;
+    }
+    .btn-main:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 16px 48px rgba(209,131,169,0.35);
+      border-color: var(--border-hot);
+    }
+    .btn-main:hover::before { opacity: 1; }
+    .btn-main:active { transform: translateY(-1px); }
+
+    .btn-cram {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 14px 36px;
+      background: linear-gradient(135deg, var(--brown-choc), var(--old-lavender));
+      border: 1px solid rgba(209,131,169,0.5);
+      border-radius: 50px;
+      color: white;
+      font-family: 'Cairo', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.28s ease;
+    }
+    .btn-cram:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 16px 48px rgba(75,21,53,0.5);
+    }
+
+    .btn-ghost {
+      padding: 10px 24px;
+      border-radius: 12px;
+      border: 1px solid var(--border-soft);
+      background: transparent;
+      color: var(--text-soft);
+      font-family: 'Cairo', sans-serif;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.22s;
+    }
+    .btn-ghost:hover { border-color: var(--border-med); color: var(--text-main); }
+
+    /* ══════════════════════════════════════════════════════════════════
+       UPLOAD ZONE
+    ══════════════════════════════════════════════════════════════════ */
+    .upload-zone {
+      border: 2px dashed rgba(186,136,174,0.35);
+      border-radius: 24px;
+      background: linear-gradient(145deg, rgba(37,21,71,0.4), rgba(22,14,42,0.6));
+      padding: 60px 40px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .upload-zone::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse at center, rgba(209,131,169,0.05) 0%, transparent 70%);
+      opacity: 0; transition: opacity 0.3s;
+    }
+    .upload-zone:hover, .upload-zone.drag-over {
+      border-color: var(--mid-purple);
+      background: linear-gradient(145deg, rgba(37,21,71,0.6), rgba(22,14,42,0.8));
+      box-shadow: 0 0 50px rgba(209,131,169,0.15), inset 0 0 30px rgba(209,131,169,0.05);
+    }
+    .upload-zone:hover::before, .upload-zone.drag-over::before { opacity: 1; }
+
+    /* ══════════════════════════════════════════════════════════════════
+       SKELETON LOADER
+    ══════════════════════════════════════════════════════════════════ */
+    .skeleton {
+      background: linear-gradient(90deg,
+        rgba(58,52,91,0.4) 25%,
+        rgba(113,85,122,0.3) 50%,
+        rgba(58,52,91,0.4) 75%);
+      background-size: 200% 100%;
+      animation: skeleton-wave 1.6s ease infinite;
+      border-radius: 10px;
+    }
+
+    /* ══════════════════════════════════════════════════════════════════
+       QUIZ COMPONENTS
+    ══════════════════════════════════════════════════════════════════ */
+    .option-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 22px;
+      background: rgba(37,21,71,0.5);
+      border: 1.5px solid var(--border-soft);
+      border-radius: 14px;
+      color: var(--text-main);
+      font-family: 'Cairo', sans-serif;
+      font-size: 15px;
+      text-align: right;
+      cursor: pointer;
+      transition: all 0.22s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .option-btn::before {
+      content: '';
+      position: absolute; left: 0; top: 0; bottom: 0;
+      width: 3px;
+      background: var(--mid-purple);
+      opacity: 0; transition: opacity 0.22s;
+    }
+    .option-btn:hover {
+      border-color: var(--border-med);
+      background: rgba(58,52,91,0.5);
+      transform: translateX(-4px);
+    }
+    .option-btn:hover::before { opacity: 1; }
+    .option-btn.selected { border-color: var(--mid-purple); background: rgba(209,131,169,0.12); }
+    .option-btn.correct {
+      border-color: var(--success); background: rgba(110,231,183,0.1); color: var(--success);
+      pointer-events: none;
+    }
+    .option-btn.wrong {
+      border-color: var(--danger); background: rgba(252,165,165,0.1); color: var(--danger);
+      pointer-events: none;
+    }
+    .option-btn.dimmed { opacity: 0.4; pointer-events: none; }
+
+    .option-letter {
+      width: 30px; height: 30px;
+      border-radius: 8px;
+      background: rgba(113,85,122,0.3);
+      border: 1px solid var(--border-soft);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; flex-shrink: 0;
+      color: var(--text-soft);
+    }
+    .option-btn.correct .option-letter { background: rgba(110,231,183,0.2); border-color: var(--success); color: var(--success); }
+    .option-btn.wrong   .option-letter { background: rgba(252,165,165,0.2); border-color: var(--danger);  color: var(--danger); }
+    .option-btn.selected .option-letter { background: rgba(209,131,169,0.2); border-color: var(--mid-purple); color: var(--mid-purple); }
+
+    .progress-track {
+      height: 5px; border-radius: 3px;
+      background: rgba(58,52,91,0.6);
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--jacarta), var(--mid-purple), var(--queen-pink));
+      border-radius: 3px;
+      transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    .trap-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 12px;
+      background: rgba(75,21,53,0.5);
+      border: 1px solid rgba(209,131,169,0.4);
+      border-radius: 20px;
+      font-size: 11px;
+      color: var(--queen-pink);
+      letter-spacing: 0.03em;
+    }
+
+    /* ══════════════════════════════════════════════════════════════════
+       SCORE RING SVG
+    ══════════════════════════════════════════════════════════════════ */
+    .score-ring { width: 160px; height: 160px; }
+
+    /* ══════════════════════════════════════════════════════════════════
+       STAT CARDS (dashboard)
+    ══════════════════════════════════════════════════════════════════ */
+    .stat-card {
+      background: linear-gradient(145deg, rgba(37,21,71,0.9), rgba(22,14,42,0.95));
+      border: 1px solid var(--border-soft);
+      border-radius: 18px;
+      padding: 22px;
+      transition: all 0.25s;
+    }
+    .stat-card:hover { border-color: var(--border-med); transform: translateY(-3px); }
+    .stat-icon {
+      width: 40px; height: 40px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; margin-bottom: 12px;
+    }
+
+    /* ══════════════════════════════════════════════════════════════════
+       SIDEBAR (dashboard layout matching image 2)
+    ══════════════════════════════════════════════════════════════════ */
+    .sidebar {
+      width: 220px; flex-shrink: 0;
+      background: linear-gradient(180deg, rgba(22,14,42,0.97) 0%, rgba(14,7,24,0.99) 100%);
+      border-left: 1px solid var(--border-soft);
+      min-height: calc(100vh - 64px);
+      padding: 24px 16px;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .sidebar-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px; border-radius: 12px;
+      color: var(--text-soft); font-size: 14px;
+      cursor: pointer; transition: all 0.2s;
+      border: 1px solid transparent;
+    }
+    .sidebar-item:hover { background: rgba(58,52,91,0.3); color: var(--text-main); }
+    .sidebar-item.active {
+      background: linear-gradient(135deg, rgba(58,52,91,0.6), rgba(113,85,122,0.4));
+      border-color: var(--border-soft);
+      color: white;
+    }
+    .sidebar-item .icon { font-size: 16px; width: 20px; text-align: center; }
+
+    /* ══════════════════════════════════════════════════════════════════
+       SECTION VISIBILITY
+    ══════════════════════════════════════════════════════════════════ */
+    .page { display: none; }
+    .page.active { display: block; animation: fade-in 0.35s ease; }
+
+    /* ══════════════════════════════════════════════════════════════════
+       FILE CHIP
+    ══════════════════════════════════════════════════════════════════ */
+    .file-chip {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px;
+      background: rgba(37,21,71,0.5);
+      border: 1px solid var(--border-soft);
+      border-radius: 12px;
+      transition: all 0.2s;
+    }
+    .file-chip:hover { border-color: var(--border-med); }
+
+    /* ══════════════════════════════════════════════════════════════════
+       LIVE DOT
+    ══════════════════════════════════════════════════════════════════ */
+    .live-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--success);
+      animation: ping-dot 1.5s ease infinite;
+    }
+
+    /* ══════════════════════════════════════════════════════════════════
+       REVIEW CARD (sample on homepage matching image 3)
+    ══════════════════════════════════════════════════════════════════ */
+    .review-card {
+      background: linear-gradient(145deg, rgba(22,14,42,0.97), rgba(14,7,24,0.98));
+      border: 1px solid var(--border-soft);
+      border-radius: 18px;
+      padding: 24px;
+    }
+    .review-q-dot {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--jacarta), var(--old-lavender));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; flex-shrink: 0;
+    }
+
+    /* ══════════════════════════════════════════════════════════════════
+       FOOTER
+    ══════════════════════════════════════════════════════════════════ */
+    .footer-link {
+      color: var(--text-muted); font-size: 13px; cursor: pointer; transition: color 0.2s;
+    }
+    .footer-link:hover { color: var(--mid-purple); }
+
+    /* ══════════════════════════════════════════════════════════════════
+       LOADING SPINNER
+    ══════════════════════════════════════════════════════════════════ */
+    .spin-ring {
+      width: 72px; height: 72px; border-radius: 50%;
+      border: 3px solid rgba(186,136,174,0.15);
+      border-top-color: var(--mid-purple);
+      border-right-color: var(--queen-pink);
+      animation: spin-ring 1.2s linear infinite;
+    }
+
+    /* ══════════════════════════════════════════════════════════════════
+       CALENDAR
+    ══════════════════════════════════════════════════════════════════ */
+    .cal-cell {
+      width: 26px; height: 26px; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; background: rgba(37,21,71,0.4);
+      cursor: default; transition: all 0.2s;
+    }
+    .cal-cell.has-data {
+      background: linear-gradient(135deg, var(--jacarta), var(--old-lavender));
+      color: white; font-weight: 700;
+    }
+    .cal-cell.today { outline: 2px solid var(--mid-purple); outline-offset: 1px; }
+
+    /* ══════════════════════════════════════════════════════════════════
+       RESPONSIVE
+    ══════════════════════════════════════════════════════════════════ */
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .dashboard-layout { flex-direction: column; }
+    }
+    @media (max-width: 640px) {
+      .hero-title { font-size: 2.4rem !important; }
+      .feature-grid { grid-template-columns: 1fr 1fr !important; }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- ══════════════════════════════════════════════════════════════════
+       BACKGROUND LAYER
+  ══════════════════════════════════════════════════════════════════ -->
+  <div class="bg-layer">
+    <div class="bg-gradient-base"></div>
+    <div class="orb" style="width:500px;height:500px;background:rgba(58,52,91,0.35);top:-120px;right:-80px;animation-duration:16s;"></div>
+    <div class="orb" style="width:380px;height:380px;background:rgba(75,21,53,0.3);bottom:-80px;left:-60px;animation-duration:20s;animation-delay:4s;"></div>
+    <div class="orb" style="width:280px;height:280px;background:rgba(113,85,122,0.2);top:45%;left:35%;animation-duration:12s;animation-delay:8s;"></div>
+    <div class="orb" style="width:200px;height:200px;background:rgba(209,131,169,0.12);top:20%;left:5%;animation-duration:18s;animation-delay:2s;"></div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════
+       FLOATING DECORATIVES (matching image 3)
+  ══════════════════════════════════════════════════════════════════ -->
+  <div style="position:fixed;top:12%;right:2%;z-index:1;pointer-events:none;">
+    <span class="fa" style="font-size:52px;opacity:0.25;display:block;">📚</span>
+  </div>
+  <div style="position:fixed;top:28%;right:6%;z-index:1;pointer-events:none;">
+    <span class="fb" style="font-size:42px;opacity:0.2;display:block;">🧠</span>
+  </div>
+  <div style="position:fixed;top:18%;left:3%;z-index:1;pointer-events:none;">
+    <span class="fc" style="font-size:44px;opacity:0.2;display:block;">✏️</span>
+  </div>
+  <div style="position:fixed;bottom:30%;right:3%;z-index:1;pointer-events:none;">
+    <span class="fa" style="font-size:38px;opacity:0.18;display:block;animation-delay:1s;">📄</span>
+  </div>
+  <div style="position:fixed;bottom:20%;left:4%;z-index:1;pointer-events:none;">
+    <span class="fb" style="font-size:40px;opacity:0.18;display:block;animation-delay:2s;">🧠</span>
+  </div>
+  <div style="position:fixed;top:55%;left:2%;z-index:1;pointer-events:none;">
+    <span class="fc" style="font-size:34px;opacity:0.15;display:block;">✨</span>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════
+       NAVIGATION
+  ══════════════════════════════════════════════════════════════════ -->
+  <nav class="nav-bar" style="position:relative;z-index:100;">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div class="logo-mark">🎯</div>
+      <span style="font-family:'Cairo',sans-serif;font-weight:900;font-size:20px;" class="text-shimmer">Quizify</span>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="nav-pill active" onclick="showPage('home')" id="nav-home">الرئيسية</button>
+      <button class="nav-pill" onclick="showPage('dashboard')" id="nav-dashboard">لوحة التحكم</button>
+      <button class="nav-pill" onclick="showPage('history')" id="nav-history">السجل</button>
+    </div>
+  </nav>
+
+  <!-- ══════════════════════════════════════════════════════════════════
+       PAGE: HOME
+  ══════════════════════════════════════════════════════════════════ -->
+  <div id="page-home" class="page active" style="position:relative;z-index:10;">
+    <div style="max-width:1100px;margin:0 auto;padding:0 20px;">
+
+      <!-- ── HERO ──────────────────────────────────────────────────── -->
+      <section style="padding:80px 0 60px;text-align:center;" class="slide-up">
+        <!-- Badge -->
+        <div style="display:inline-flex;align-items:center;gap:8px;padding:6px 18px;border-radius:50px;background:rgba(37,21,71,0.6);border:1px solid var(--border-soft);margin-bottom:28px;">
+          <div class="live-dot"></div>
+          <span style="font-size:13px;color:var(--text-soft);">منصة الطلاب الجزائريين</span>
+        </div>
+
+        <h1 class="heading-display hero-title" style="font-size:3.8rem;margin-bottom:12px;" dir="rtl">
+          <span class="text-shimmer">Quizify</span><br/>
+          <span style="color:var(--text-main);">اختبارات ذكية ومخصصة</span>
+        </h1>
+
+        <p style="font-size:17px;color:var(--text-soft);max-width:600px;margin:0 auto 40px;line-height:1.8;" dir="rtl">
+          منصة جزائرية شاملة لتوليد الاختبارات من دروسك. ارفع ملف PDF، خذ قهوتك، وارجع لكويز جاهز.
+        </p>
+
+        <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-bottom:60px;">
+          <button class="btn-main" onclick="document.getElementById('upload-block').scrollIntoView({behavior:'smooth'})">
+            <span>ابدأ التجربة المجانية الآن</span> <span>🚀</span>
+          </button>
+          <button class="btn-cram" id="hero-cram-btn"
+                  onmouseenter="this.querySelector('.ci').textContent='🫠'"
+                  onmouseleave="this.querySelector('.ci').textContent='⚡'"
+                  onclick="activateCramAndScroll()">
+            <span class="ci">⚡</span>
+            <span>وضع المراجعة السريعة</span>
+          </button>
+        </div>
+
+        <!-- Mini stats row -->
+        <div style="display:flex;justify-content:center;gap:0;max-width:420px;margin:0 auto;">
+          <div style="flex:1;text-align:center;padding:0 20px;border-left:1px solid var(--border-soft);">
+            <div id="hs-quizzes" style="font-size:28px;font-weight:900;color:white;">0</div>
+            <div style="font-size:12px;color:var(--text-muted);">اختبار مولّد</div>
+          </div>
+          <div style="flex:1;text-align:center;padding:0 20px;border-left:1px solid var(--border-soft);">
+            <div id="hs-questions" style="font-size:28px;font-weight:900;" class="text-gradient">0</div>
+            <div style="font-size:12px;color:var(--text-muted);">سؤال أُجيب</div>
+          </div>
+          <div style="flex:1;text-align:center;padding:0 20px;">
+            <div id="hs-avg" style="font-size:28px;font-weight:900;color:white;">—</div>
+            <div style="font-size:12px;color:var(--text-muted);">متوسط النقاط</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── FEATURE CARDS (matching image 3 layout exactly) ──────── -->
+      <section style="margin-bottom:72px;">
+        <div class="feature-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;">
+
+          <!-- Card 1 -->
+          <div class="glass-card" style="padding:28px 22px;">
+            <div style="font-size:44px;margin-bottom:16px;display:block;" class="fa">📂</div>
+            <h3 style="font-size:16px;font-weight:700;color:white;margin-bottom:10px;" dir="rtl">تحميل PDF ذكي</h3>
+            <p style="font-size:13px;color:var(--text-soft);line-height:1.7;" dir="rtl">ارفع حتى 20 ملف مرة واحدة. نستخلص النص ونولّد الأسئلة من محتواك مباشرة.</p>
+            <div style="margin-top:16px;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--mid-purple);">
+              <span>⚡</span><span>معالجة خلفية — لا انتظار</span>
+            </div>
+          </div>
+
+          <!-- Card 2 -->
+          <div class="glass-card" style="padding:28px 22px;">
+            <div style="font-size:44px;margin-bottom:16px;display:block;" class="fb">🧠</div>
+            <h3 style="font-size:16px;font-weight:700;color:white;margin-bottom:10px;" dir="rtl">كويزات RAG دقيقة</h3>
+            <p style="font-size:13px;color:var(--text-soft);line-height:1.7;" dir="rtl">الأسئلة مستخرجة فقط من ملفاتك. لا اختراع، لا تعديل، كل شيء من درسك.</p>
+            <div style="margin-top:16px;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--mid-purple);">
+              <span>🔒</span><span>مقفل على محتواك</span>
+            </div>
+          </div>
+
+          <!-- Card 3 -->
+          <div class="glass-card" style="padding:28px 22px;">
+            <div style="font-size:44px;margin-bottom:16px;display:block;" class="fc">🇩🇿</div>
+            <h3 style="font-size:16px;font-weight:700;color:white;margin-bottom:10px;" dir="rtl">أنماط جزائرية: BAC/BEM</h3>
+            <p style="font-size:13px;color:var(--text-soft);line-height:1.7;" dir="rtl">يكتشف مستواك تلقائيًا من الملف. بكالوريا، BEM، جامعي — بدون ما تختار.</p>
+            <div style="margin-top:16px;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--mid-purple);">
+              <span>🎓</span><span>كشف تلقائي للمستوى</span>
+            </div>
+          </div>
+
+          <!-- Card 4 — Cram (highlighted, matching image 3) -->
+          <div class="glass-card card-cram" style="padding:28px 22px;cursor:pointer;" onclick="activateCramAndScroll()">
+            <div style="font-size:44px;margin-bottom:16px;display:block;" class="fa">⏰⚡</div>
+            <h3 style="font-size:16px;font-weight:700;color:white;margin-bottom:10px;" dir="rtl">Cram Mode</h3>
+            <h4 style="font-size:13px;font-weight:600;color:var(--queen-pink);margin-bottom:10px;" dir="rtl">مراجعة سريعة</h4>
+            <p style="font-size:13px;color:var(--scale-2);line-height:1.7;" dir="rtl">5 أسئلة فخ استراتيجية من التصحيح النموذجي الجزائري — للمذاكرة اللحظية.</p>
+            <div style="margin-top:16px;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--queen-pink);">
+              <span>🫣</span><span>انقر للتفعيل</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── UPLOAD BLOCK ──────────────────────────────────────────── -->
+      <section id="upload-block" style="margin-bottom:72px;">
+        <div style="text-align:center;margin-bottom:32px;">
+          <h2 class="heading-display" style="font-size:2rem;color:white;" dir="rtl">ارفع دروسك الآن</h2>
+          <p style="color:var(--text-soft);font-size:14px;margin-top:8px;" dir="rtl">بدون تسجيل — بدون بطاقة — مجاني 100%</p>
+        </div>
+
+        <!-- Mode + Count pills -->
+        <div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-bottom:24px;">
+          <div class="glass" style="border-radius:50px;padding:6px 8px;display:flex;align-items:center;gap:8px;">
+            <span style="font-size:12px;color:var(--text-muted);padding:0 8px;">نوع:</span>
+            <button id="mode-regular" class="nav-pill active" onclick="setMode('regular')">عادي</button>
+            <button id="mode-cram"    class="nav-pill"        onclick="setMode('cram')">⚡ مراجعة سريعة</button>
+          </div>
+          <div class="glass" id="count-row" style="border-radius:50px;padding:6px 8px;display:flex;align-items:center;gap:8px;">
+            <span style="font-size:12px;color:var(--text-muted);padding:0 8px;">أسئلة:</span>
+            <button id="cnt-10" class="nav-pill active" onclick="setCount(10)">10</button>
+            <button id="cnt-20" class="nav-pill" onclick="setCount(20)">20</button>
+            <button id="cnt-30" class="nav-pill" onclick="setCount(30)">30</button>
+          </div>
+        </div>
+
+        <!-- Drop Zone -->
+        <div class="upload-zone" id="drop-zone"
+             onclick="document.getElementById('file-input').click()"
+             ondragover="onDragOver(event)"
+             ondragleave="onDragLeave(event)"
+             ondrop="onDrop(event)">
+          <div style="font-size:56px;margin-bottom:16px;" class="fc">📄</div>
+          <p style="font-size:17px;font-weight:700;color:white;margin-bottom:6px;" dir="ltr">drop your pdfs here (max 20)</p>
+          <p style="font-size:14px;color:var(--text-soft);" dir="rtl">اسحب ملفات الـ PDF هنا أو انقر للاختيار</p>
+          <p style="font-size:12px;color:var(--text-muted);margin-top:8px;">PDF only · Max 20 files · Any size</p>
+          <input type="file" id="file-input" multiple accept=".pdf" style="display:none;" onchange="onFileSelect(event)" />
+        </div>
+
+        <!-- File list -->
+        <div id="file-list" style="margin-top:14px;display:flex;flex-direction:column;gap:8px;"></div>
+
+        <!-- Upload button -->
+        <div style="display:flex;justify-content:center;margin-top:20px;">
+          <button id="upload-btn" class="btn-main" style="display:none;font-size:17px;padding:16px 48px;" onclick="doUpload()">
+            <span>🚀</span> توليد الاختبار
+          </button>
+        </div>
+      </section>
+
+      <!-- ── LOADING STATE (hidden by default) ────────────────────── -->
+      <div id="loading-block" style="display:none;text-align:center;padding:60px 0;">
+        <div style="display:flex;justify-content:center;margin-bottom:28px;">
+          <div class="spin-ring"></div>
+        </div>
+        <p id="loading-msg" style="font-size:18px;font-weight:600;color:white;margin-bottom:8px;" dir="ltr">
+          analyzing docs and cooking your quiz... 😏
+        </p>
+        <p style="font-size:13px;color:var(--text-soft);" dir="rtl">يتم تحليل ملفاتك وتوليد أسئلة من محتواك...</p>
+
+        <!-- Skeleton preview cards -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;max-width:600px;margin:32px auto 0;">
+          <div class="skeleton" style="height:80px;"></div>
+          <div class="skeleton" style="height:80px;animation-delay:0.25s;"></div>
+          <div class="skeleton" style="height:80px;animation-delay:0.5s;"></div>
+        </div>
+      </div>
+
+      <!-- ── DASHBOARD SNIPPET (matching image 3 bottom section) ───── -->
+      <section style="margin-bottom:72px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:start;">
+
+          <!-- Review & Analysis card (left, matching image 3) -->
+          <div>
+            <h3 style="font-size:22px;font-weight:700;color:white;margin-bottom:20px;" dir="ltr">Review &amp; Analysis</h3>
+            <div class="review-card">
+              <!-- Sample question -->
+              <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:18px;">
+                <div class="review-q-dot">Q</div>
+                <div style="flex:1;">
+                  <p style="font-size:14px;color:white;font-weight:600;margin-bottom:6px;" dir="rtl">
+                    ما العضو الذي يُنتج الصفراء في جسم الإنسان؟
+                  </p>
+                  <div style="display:flex;gap:6px;">
+                    <span class="trap-badge">⚠️ فخ</span>
+                    <span class="trap-badge" style="background:rgba(58,52,91,0.4);">BAC</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Wrong answer shown -->
+              <div style="padding:12px;background:rgba(252,165,165,0.08);border:1px solid rgba(252,165,165,0.25);border-radius:10px;margin-bottom:10px;">
+                <span style="font-size:12px;color:var(--danger);">❌ إجابتك: B. المرارة</span>
+              </div>
+
+              <!-- Explanation block -->
+              <div style="padding:14px;background:rgba(37,21,71,0.5);border:1px solid var(--border-soft);border-radius:10px;border-right:3px solid var(--mid-purple);">
+                <p style="font-size:12px;color:var(--text-soft);font-weight:600;margin-bottom:6px;" dir="ltr">Explanation</p>
+                <p style="font-size:13px;color:var(--text-main);line-height:1.7;margin-bottom:10px;" dir="rtl">
+                  الكبد ينتج الصفراء، والمرارة تخزّنها فقط. هذا الفرق الدقيق يضيّع نقاطاً كثيرة في الامتحانات الرسمية.
+                </p>
+                <div style="padding:10px;background:rgba(75,21,53,0.4);border-radius:8px;text-align:center;">
+                  <p style="font-size:13px;color:var(--queen-pink);font-weight:700;" dir="rtl">
+                    الشرح النموذجي الجزائري بناءً على درسك فقط.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dashboard Snippet (right, matching image 3) -->
+          <div>
+            <h3 style="font-size:22px;font-weight:700;color:white;margin-bottom:20px;" dir="ltr">Dashboard Snippet</h3>
+            <div class="glass-card" style="padding:20px;cursor:pointer;" onclick="showPage('dashboard')">
+              <!-- Mini dashboard preview -->
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;">
+                <div style="background:rgba(37,21,71,0.7);border-radius:10px;padding:10px;text-align:center;">
+                  <div style="font-size:18px;font-weight:900;color:white;" id="snap-quizzes">—</div>
+                  <div style="font-size:10px;color:var(--text-muted);">اختبارات</div>
+                </div>
+                <div style="background:rgba(37,21,71,0.7);border-radius:10px;padding:10px;text-align:center;">
+                  <div style="font-size:18px;font-weight:900;" class="text-gradient" id="snap-avg">—</div>
+                  <div style="font-size:10px;color:var(--text-muted);">المتوسط</div>
+                </div>
+                <div style="background:rgba(37,21,71,0.7);border-radius:10px;padding:10px;text-align:center;">
+                  <div style="font-size:18px;font-weight:900;" style="color:var(--success);" id="snap-best">—</div>
+                  <div style="font-size:10px;color:var(--text-muted);">أعلى نقطة</div>
+                </div>
+              </div>
+              <!-- Fake mini chart bars -->
+              <div style="display:flex;align-items:flex-end;gap:4px;height:60px;padding:0 4px;">
+                <div style="flex:1;border-radius:4px 4px 0 0;background:linear-gradient(180deg,var(--mid-purple),var(--jacarta));height:40%;"></div>
+                <div style="flex:1;border-radius:4px 4px 0 0;background:linear-gradient(180deg,var(--mid-purple),var(--jacarta));height:60%;"></div>
+                <div style="flex:1;border-radius:4px 4px 0 0;background:linear-gradient(180deg,var(--mid-purple),var(--jacarta));height:30%;"></div>
+                <div style="flex:1;border-radius:4px 4px 0 0;background:linear-gradient(180deg,var(--queen-pink),var(--mid-purple));height:80%;"></div>
+                <div style="flex:1;border-radius:4px 4px 0 0;background:linear-gradient(180deg,var(--mid-purple),var(--jacarta));height:55%;"></div>
+                <div style="flex:1;border-radius:4px 4px 0 0;background:linear-gradient(180deg,var(--mid-purple),var(--jacarta));height:70%;"></div>
+                <div style="flex:1;border-radius:4px 4px 0 0;background:linear-gradient(180deg,var(--queen-pink),var(--mid-purple));height:90%;"></div>
+              </div>
+              <div style="text-align:center;margin-top:12px;">
+                <span style="font-size:12px;color:var(--text-soft);">افتح لوحة التحكم الكاملة ←</span>
+              </div>
+            </div>
+
+            <!-- "No External Search" badge matching image 3 -->
+            <div style="margin-top:16px;padding:16px 20px;background:rgba(37,21,71,0.6);border:1px solid var(--border-soft);border-radius:14px;display:flex;align-items:center;gap:12px;">
+              <span style="font-size:24px;">✦</span>
+              <div>
+                <p style="font-size:14px;font-weight:700;color:white;margin-bottom:2px;" dir="ltr">"No External Search"</p>
+                <p style="font-size:13px;color:var(--text-soft);" dir="rtl">التزام للمصدر — كل إجابة من ملفاتك فقط.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── FOOTER (matching image 3 bottom) ─────────────────────── -->
+      <footer style="border-top:1px solid var(--border-soft);padding:28px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:gap;">
+        <div style="display:flex;gap:24px;">
+          <span class="footer-link" onclick="showPage('home')">روابط الرئيسية</span>
+          <span class="footer-link">الأطوار</span>
+          <span class="footer-link">الاتصال</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:12px;color:var(--text-muted);">© 2026 All rights reserved.</span>
+          <span style="font-weight:900;font-size:16px;" class="text-shimmer">Quizify</span>
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════
+       PAGE: QUIZ (shown when quiz is ready)
+  ══════════════════════════════════════════════════════════════════ -->
+  <div id="page-quiz" class="page" style="position:relative;z-index:10;">
+    <div style="max-width:720px;margin:0 auto;padding:32px 20px;">
+
+      <!-- Quiz header -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span id="q-level-badge" class="trap-badge" style="font-size:12px;">🎓 —</span>
+          <span id="q-mode-badge" class="trap-badge" style="font-size:12px;background:rgba(37,21,71,0.5);">📝 عادي</span>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:2px;">السؤال</div>
+          <div style="font-size:22px;font-weight:900;color:white;">
+            <span id="q-idx">1</span><span style="color:var(--text-muted);font-size:14px;"> / </span><span id="q-total">10</span>
+          </div>
+        </div>
+        <div id="q-timer" style="font-family:'Space Grotesk',monospace;font-size:20px;font-weight:700;color:var(--mid-purple);">00:00</div>
+      </div>
+
+      <!-- Progress bar -->
+      <div class="progress-track" style="margin-bottom:28px;">
+        <div class="progress-fill" id="q-progress" style="width:0%;"></div>
+      </div>
+
+      <!-- Question card -->
+      <div class="glass-card" style="padding:32px;margin-bottom:20px;" id="q-card">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
+          <div style="width:32px;height:32px;border-radius:10px;background:linear-gradient(135deg,var(--jacarta),var(--old-lavender));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:white;" id="q-num-badge">1</div>
+          <span id="q-trap-badge" class="trap-badge" style="display:none;">⚠️ فخ محتمل</span>
+        </div>
+        <p id="q-text" style="font-size:18px;font-weight:600;color:white;line-height:1.7;margin-bottom:24px;" dir="rtl"></p>
+        <div id="q-options" style="display:flex;flex-direction:column;gap:10px;"></div>
+      </div>
+
+      <!-- Explanation box (appears after answering) -->
+      <div id="q-explanation" style="display:none;" class="glass-card" style="padding:20px;margin-bottom:20px;"></div>
+
+      <!-- Navigation -->
+      <div style="display:flex;justify-content:center;gap:12px;">
+        <button id="q-next" class="btn-main" style="display:none;" onclick="nextQ()">
+          التالي <span>←</span>
+        </button>
+        <button id="q-submit" class="btn-main" style="display:none;" onclick="submitQuiz()">
+          <span>🏁</span> إنهاء الاختبار
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════
+       PAGE: RESULT
+  ══════════════════════════════════════════════════════════════════ -->
+  <div id="page-result" class="page" style="position:relative;z-index:10;">
+    <div style="max-width:680px;margin:0 auto;padding:40px 20px;">
+
+      <!-- Score hero -->
+      <div class="glass-card" style="padding:48px 32px;text-align:center;margin-bottom:24px;animation:slide-up 0.55s ease;">
+        <div style="display:flex;justify-content:center;margin-bottom:24px;">
+          <svg class="score-ring" viewBox="0 0 160 160">
+            <defs>
+              <linearGradient id="rg" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#3A345B"/>
+                <stop offset="50%" stop-color="#D183A9"/>
+                <stop offset="100%" stop-color="#F3C8DD"/>
+              </linearGradient>
+            </defs>
+            <circle cx="80" cy="80" r="68" fill="none" stroke="rgba(58,52,91,0.4)" stroke-width="10"/>
+            <circle id="r-circle" cx="80" cy="80" r="68" fill="none"
+                    stroke="url(#rg)" stroke-width="10" stroke-linecap="round"
+                    stroke-dasharray="427" stroke-dashoffset="427"
+                    transform="rotate(-90 80 80)"
+                    style="transition:stroke-dashoffset 1.8s cubic-bezier(0.4,0,0.2,1);"/>
+            <text x="80" y="74" text-anchor="middle" font-size="30" font-weight="900" fill="white" id="r-pct">0%</text>
+            <text x="80" y="96" text-anchor="middle" font-size="12" fill="#c4a8d4" id="r-sub">0/0</text>
+          </svg>
+        </div>
+        <p id="r-feedback-en" style="font-size:18px;font-weight:700;color:white;margin-bottom:8px;" dir="ltr"></p>
+        <p id="r-feedback-ar" style="font-size:14px;color:var(--text-soft);" dir="rtl"></p>
+
+        <div style="display:flex;gap:12px;justify-content:center;margin-top:28px;">
+          <button class="btn-main" onclick="retryQuiz()">🔁 إعادة المحاولة</button>
+          <button class="btn-ghost" onclick="goHome()">🏠 الرئيسية</button>
+        </div>
+      </div>
+
+      <!-- Wrong answers breakdown -->
+      <div id="r-wrongs" style="display:flex;flex-direction:column;gap:14px;"></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════
+       PAGE: DASHBOARD (matching image 2 dark theme layout)
+  ══════════════════════════════════════════════════════════════════ -->
+  <div id="page-dashboard" class="page" style="position:relative;z-index:10;">
+    <div style="display:flex;min-height:calc(100vh - 64px);" class="dashboard-layout">
+
+      <!-- Sidebar (matching image 2) -->
+      <aside class="sidebar">
+        <div style="padding:4px 0 16px;border-bottom:1px solid var(--border-soft);margin-bottom:8px;">
+          <p style="font-size:11px;color:var(--text-muted);padding:0 14px;margin-bottom:8px;letter-spacing:0.1em;">MENU</p>
+        </div>
+        <div class="sidebar-item active">
+          <span class="icon">📊</span><span>Dashboard</span>
+        </div>
+        <div class="sidebar-item">
+          <span class="icon">📈</span><span>Analytics</span>
+        </div>
+        <div class="sidebar-item" onclick="showPage('history')">
+          <span class="icon">📋</span><span>History</span>
+        </div>
+        <div class="sidebar-item" onclick="showPage('home')">
+          <span class="icon">🏠</span><span>Home</span>
+        </div>
+        <div style="flex:1;"></div>
+        <!-- Upgrade card (matching image 2) -->
+        <div style="background:linear-gradient(135deg,var(--brown-choc),var(--old-lavender));border-radius:16px;padding:18px 14px;text-align:center;">
+          <div style="font-size:28px;margin-bottom:8px;">🚀</div>
+          <p style="font-size:13px;font-weight:700;color:white;margin-bottom:4px;">Quizify Pro</p>
+          <p style="font-size:11px;color:rgba(255,255,255,0.7);margin-bottom:12px;">Unlimited PDFs & quizzes</p>
+          <button class="btn-main" style="font-size:12px;padding:8px 20px;border-radius:30px;">قريبًا</button>
+        </div>
+      </aside>
+
+      <!-- Main dashboard content -->
+      <main style="flex:1;padding:28px 24px;overflow:auto;">
+
+        <!-- Greeting row (matching image 2) -->
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px;flex-wrap:wrap;gap:16px;">
+          <div>
+            <p style="font-size:13px;color:var(--text-soft);margin-bottom:4px;" dir="rtl">مرحبًا بك 👋</p>
+            <h2 class="heading-display" style="font-size:1.8rem;color:white;" dir="rtl">تحقق من نتائجك اليومية</h2>
+            <p style="font-size:13px;color:var(--text-muted);margin-top:4px;" dir="rtl">استمر في المذاكرة، أنت في الطريق الصحيح.</p>
+          </div>
+          <button class="btn-main" style="font-size:13px;padding:10px 22px;" onclick="showPage('home')">
+            <span>+</span> كويز جديد
+          </button>
+        </div>
+
+        <!-- Empty dashboard state -->
+        <div id="db-empty" style="text-align:center;padding:80px 20px;display:none;">
+          <div style="font-size:60px;margin-bottom:16px;" class="fc">🫠</div>
+          <p style="font-size:17px;color:white;font-weight:700;margin-bottom:6px;" dir="ltr">no data yet. do a quiz first, bestie.</p>
+          <p style="font-size:14px;color:var(--text-soft);" dir="rtl">لم تُجرِ أي اختبار بعد. ابدأ من الرئيسية.</p>
+          <button class="btn-main" style="margin-top:20px;" onclick="showPage('home')">ابدأ الآن</button>
+        </div>
+
+        <!-- Stats row (matching image 2 stat cards) -->
+        <div id="db-stats-row" style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;">
+          <div class="stat-card">
+            <div class="stat-icon" style="background:rgba(58,52,91,0.6);">📝</div>
+            <div style="font-size:26px;font-weight:900;color:white;" id="db-total">—</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">إجمالي الاختبارات</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="background:rgba(75,21,53,0.6);">🎯</div>
+            <div style="font-size:26px;font-weight:900;" class="text-gradient" id="db-avg">—</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">متوسط النقاط</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="background:rgba(22,65,40,0.6);">🏆</div>
+            <div style="font-size:26px;font-weight:900;color:var(--success);" id="db-best">—</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">أعلى نقطة</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="background:rgba(58,52,91,0.6);">💡</div>
+            <div style="font-size:26px;font-weight:900;color:white;" id="db-qcount">—</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">أسئلة أُجيبت</div>
+          </div>
+        </div>
+
+        <!-- Charts row -->
+        <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:20px;">
+
+          <!-- Activity line chart (matching image 2) -->
+          <div class="glass-card" style="padding:22px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+              <h4 style="font-size:15px;font-weight:700;color:white;" dir="rtl">📈 تطور النقاط</h4>
+              <span style="font-size:11px;color:var(--text-muted);">آخر 10 اختبارات</span>
+            </div>
+            <div style="height:180px;"><canvas id="chart-scores"></canvas></div>
+          </div>
+
+          <!-- Doughnut (matching image 2 progress ring) -->
+          <div class="glass-card" style="padding:22px;">
+            <h4 style="font-size:15px;font-weight:700;color:white;margin-bottom:16px;" dir="rtl">🎓 المستويات</h4>
+            <div style="height:180px;"><canvas id="chart-levels"></canvas></div>
+          </div>
+        </div>
+
+        <!-- Calendar + Meetings row (matching image 2 right panel) -->
+        <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;">
+
+          <!-- Calendar heatmap -->
+          <div class="glass-card" style="padding:22px;">
+            <h4 style="font-size:15px;font-weight:700;color:white;margin-bottom:16px;" dir="rtl">📅 سجل النشاط — آخر 30 يوم</h4>
+            <div id="db-calendar" style="display:flex;flex-wrap:wrap;gap:5px;"></div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:12px;">
+              <div style="width:12px;height:12px;border-radius:3px;background:rgba(37,21,71,0.5);"></div>
+              <span style="font-size:11px;color:var(--text-muted);">لا اختبار</span>
+              <div style="width:12px;height:12px;border-radius:3px;background:linear-gradient(135deg,var(--jacarta),var(--old-lavender));margin-right:4px;"></div>
+              <span style="font-size:11px;color:var(--text-muted);">يوم اختبار</span>
+            </div>
+          </div>
+
+          <!-- Recent scores list (matching image 2 meetings panel) -->
+          <div class="glass-card" style="padding:22px;">
+            <h4 style="font-size:15px;font-weight:700;color:white;margin-bottom:16px;" dir="rtl">🕐 آخر النتائج</h4>
+            <div id="db-recent-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════
+       PAGE: HISTORY
+  ══════════════════════════════════════════════════════════════════ -->
+  <div id="page-history" class="page" style="position:relative;z-index:10;">
+    <div style="max-width:800px;margin:0 auto;padding:40px 20px;">
+      <h2 class="heading-display" style="font-size:2rem;color:white;margin-bottom:8px;" dir="rtl">السجل 📋</h2>
+      <p style="color:var(--text-soft);font-size:14px;margin-bottom:28px;" dir="rtl">آخر 20 اختبار أجريتها</p>
+      <div id="hist-list" style="display:flex;flex-direction:column;gap:12px;"></div>
+      <div id="hist-empty" style="display:none;text-align:center;padding:80px 20px;">
+        <div style="font-size:56px;margin-bottom:16px;" class="fa">📄</div>
+        <p style="font-size:17px;color:white;font-weight:700;" dir="ltr">your history is as empty as my motivation rn -.-</p>
+        <p style="font-size:14px;color:var(--text-soft);margin-top:6px;" dir="rtl">لم تُجرِ أي اختبار بعد.</p>
+        <button class="btn-main" style="margin-top:20px;" onclick="showPage('home')">ابدأ الآن</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ════════════════════════════════════════════════════════════════
+       ALL JAVASCRIPT
+  ════════════════════════════════════════════════════════════════ -->
+  <script>
+  /* ─── App State ──────────────────────────────────────────────────── */
+  const S = {
+    mode:       'regular',
+    count:      10,
+    files:      [],
+    taskIds:    [],
+    quiz:       null,  /* { quiz_id, questions, level, mode } */
+    qIndex:     0,
+    answers:    {},
+    startTime:  null,
+    timerTick:  null,
+    polls:      {},
+    charts:     {},
+    cramPending: false,
+  };
+
+  /* ─── Loading message rotation ────────────────────────────────────── */
+  const LOAD_MSGS = [
+    'analyzing docs and cooking your quiz... 😏',
+    'giving your pdf the side-eye... 👀',
+    'cooking the traps, hold on... -.-',
+  ];
+  let loadMsgI = 0, loadMsgTimer = null;
+
+  /* ─── PAGE ROUTER ─────────────────────────────────────────────────── */
+  function showPage(name) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    const el = document.getElementById('page-' + name);
+    if (el) el.classList.add('active');
+
+    /* Update nav pills */
+    document.querySelectorAll('.nav-pill').forEach(p => p.classList.remove('active'));
+    const navMap = { home: 'nav-home', dashboard: 'nav-dashboard', history: 'nav-history' };
+    if (navMap[name]) document.getElementById(navMap[name])?.classList.add('active');
+
+    if (name === 'dashboard') loadDashboard();
+    if (name === 'history')   loadHistory();
+  }
+
+  /* ─── MODE / COUNT ────────────────────────────────────────────────── */
+  function setMode(m) {
+    S.mode = m;
+    ['regular','cram'].forEach(x => document.getElementById('mode-'+x)?.classList.remove('active'));
+    document.getElementById('mode-'+m)?.classList.add('active');
+    document.getElementById('count-row').style.display = m === 'cram' ? 'none' : '';
+  }
+
+  function setCount(n) {
+    S.count = n;
+    [10,20,30].forEach(x => document.getElementById('cnt-'+x)?.classList.remove('active'));
+    document.getElementById('cnt-'+n)?.classList.add('active');
+  }
+
+  function activateCramAndScroll() {
+    setMode('cram');
+    S.cramPending = true;
+    document.getElementById('upload-block').scrollIntoView({ behavior:'smooth' });
+  }
+
+  /* ─── FILE HANDLING ──────────────────────────────────────────────── */
+  function onDragOver(e) { e.preventDefault(); document.getElementById('drop-zone').classList.add('drag-over'); }
+  function onDragLeave()  { document.getElementById('drop-zone').classList.remove('drag-over'); }
+  function onDrop(e) {
+    e.preventDefault();
+    document.getElementById('drop-zone').classList.remove('drag-over');
+    addFiles(Array.from(e.dataTransfer.files).filter(f => f.name.toLowerCase().endsWith('.pdf')));
+  }
+  function onFileSelect(e) { addFiles(Array.from(e.target.files)); }
+
+  function addFiles(newFiles) {
+    S.files = [...S.files, ...newFiles].slice(0, 20);
+    renderFileList();
+  }
+
+  function renderFileList() {
+    const wrap = document.getElementById('file-list');
+    wrap.innerHTML = '';
+    S.files.forEach((f, i) => {
+      const d = document.createElement('div');
+      d.className = 'file-chip';
+      d.innerHTML = `
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:18px;">📄</span>
+          <div>
+            <div style="font-size:13px;color:white;font-weight:600;">${f.name}</div>
+            <div style="font-size:11px;color:var(--text-muted);">${(f.size/1024).toFixed(0)} KB</div>
+          </div>
+        </div>
+        <button onclick="removeFile(${i})"
+                style="background:none;border:none;color:var(--danger);font-size:20px;cursor:pointer;line-height:1;">×</button>`;
+      wrap.appendChild(d);
+    });
+    document.getElementById('upload-btn').style.display = S.files.length ? 'inline-flex' : 'none';
+  }
+
+  function removeFile(i) { S.files.splice(i, 1); renderFileList(); }
+
+  /* ─── UPLOAD + POLL ──────────────────────────────────────────────── */
+  async function doUpload() {
+    if (!S.files.length) return;
+
+    /* Build FormData */
+    const fd = new FormData();
+    S.files.forEach(f => fd.append('files', f));
+    fd.append('mode',  S.mode);
+    fd.append('count', String(S.count));
+
+    /* Show loading, hide upload UI */
+    document.getElementById('upload-block').style.display = 'none';
+    document.getElementById('loading-block').style.display = 'block';
+
+    /* Start loading message cycle */
+    loadMsgI = 0;
+    document.getElementById('loading-msg').textContent = LOAD_MSGS[0];
+    loadMsgTimer = setInterval(() => {
+      loadMsgI = (loadMsgI + 1) % LOAD_MSGS.length;
+      document.getElementById('loading-msg').textContent = LOAD_MSGS[loadMsgI];
+    }, 4000);
+
+    try {
+      const res  = await fetch('/api/upload', { method:'POST', body: fd });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Upload failed');
+      S.taskIds = data.task_ids || [];
+      if (S.taskIds.length) pollTask(S.taskIds[0]);
+    } catch (err) {
+      stopLoading();
+      alert('خطأ في الرفع: ' + err.message);
+    }
+  }
+
+  function pollTask(taskId) {
+    let attempts = 0;
+    const interval = setInterval(async () => {
+      attempts++;
+      if (attempts > 150) { /* 5 min max */
+        clearInterval(interval);
+        stopLoading();
+        alert('انتهت المهلة — حاول مرة أخرى');
+        return;
+      }
+      try {
+        const res  = await fetch('/api/quiz/status/' + taskId);
+        const data = await res.json();
+        if (data.status === 'completed') {
+          clearInterval(interval);
+          stopLoading();
+          S.quiz = data;
+          launchQuiz();
+        } else if (data.status === 'failed') {
+          clearInterval(interval);
+          stopLoading();
+          alert('فشل التوليد: ' + (data.error || 'خطأ غير معروف'));
+        }
+      } catch(_) { /* network blip, keep polling */ }
+    }, 2000);
+    S.polls[taskId] = interval;
+  }
+
+  function stopLoading() {
+    if (loadMsgTimer) clearInterval(loadMsgTimer);
+    document.getElementById('loading-block').style.display = 'none';
+    document.getElementById('upload-block').style.display  = '';
+  }
+
+  /* ─── QUIZ ENGINE ────────────────────────────────────────────────── */
+  function launchQuiz() {
+    S.qIndex   = 0;
+    S.answers  = {};
+    S.startTime = Date.now();
+    showPage('quiz');
+    renderQuestion();
+    startTimer();
+
+    /* Set badges */
+    document.getElementById('q-level-badge').textContent = '🎓 ' + (S.quiz.level || '—');
+    document.getElementById('q-mode-badge').textContent  = S.quiz.mode === 'cram' ? '⚡ مراجعة سريعة' : '📝 عادي';
+    document.getElementById('q-total').textContent = S.quiz.questions.length;
+  }
+
+  function renderQuestion() {
+    const q    = S.quiz.questions[S.qIndex];
+    const total = S.quiz.questions.length;
+
+    /* Progress */
+    document.getElementById('q-progress').style.width = ((S.qIndex / total) * 100) + '%';
+    document.getElementById('q-idx').textContent      = S.qIndex + 1;
+    document.getElementById('q-num-badge').textContent = S.qIndex + 1;
+
+    /* Trap badge */
+    const tb = document.getElementById('q-trap-badge');
+    tb.style.display = q.is_trap ? 'inline-flex' : 'none';
+
+    /* Question text */
+    document.getElementById('q-text').textContent = q.question;
+
+    /* Options */
+    const opts = document.getElementById('q-options');
+    opts.innerHTML = '';
+    const letters = ['A','B','C','D','E'];
+    q.options.forEach((opt, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'option-btn';
+      btn.innerHTML = `
+        <div class="option-letter">${letters[i]}</div>
+        <span dir="rtl" style="flex:1;">${opt}</span>`;
+      btn.onclick = () => chooseAnswer(q, opt, btn, opts);
+      opts.appendChild(btn);
+    });
+
+    /* Hide nav until answered */
+    document.getElementById('q-next').style.display   = 'none';
+    document.getElementById('q-submit').style.display = 'none';
+    document.getElementById('q-explanation').style.display = 'none';
+  }
+
+  function chooseAnswer(q, chosen, clickedBtn, container) {
+    /* Lock all buttons */
+    container.querySelectorAll('.option-btn').forEach(b => { b.onclick = null; });
+    S.answers[String(q.id)] = chosen;
+
+    const correctAns = (q.answer || '').trim();
+    const isCorrect  = chosen.trim().toUpperCase().startsWith(correctAns[0]?.toUpperCase());
+
+    /* Colour each option */
+    container.querySelectorAll('.option-btn').forEach(b => {
+      const optText   = b.querySelector('span').textContent.trim();
+      const isThisOk  = optText.toUpperCase().startsWith(correctAns[0]?.toUpperCase());
+      if (isThisOk)                        b.classList.add('correct');
+      else if (b === clickedBtn && !isCorrect) b.classList.add('wrong');
+      else                                 b.classList.add('dimmed');
+    });
+
+    /* Explanation */
+    const expBox = document.getElementById('q-explanation');
+    expBox.style.display = '';
+    const isTrap = q.is_trap && !isCorrect;
+
+    let html = '';
+    if (isCorrect) {
+      html = `
+        <div style="border-right:3px solid var(--success);padding-right:14px;">
+          <p style="font-weight:700;color:var(--success);margin-bottom:6px;" dir="ltr">correct. okay you see me... 😏</p>
+          <p style="font-size:13px;color:var(--text-soft);" dir="rtl">إجابة صحيحة. ${q.explanation || ''}</p>
+        </div>`;
+    } else if (isTrap) {
+      html = `
+        <div style="border-right:3px solid var(--danger);padding-right:14px;">
+          <p style="font-weight:700;color:var(--danger);margin-bottom:4px;" dir="ltr">missed it. here is the breakdown of the trap:</p>
+          <p style="font-size:13px;color:var(--text-soft);margin-bottom:10px;" dir="rtl">إجابة خاطئة. الأستاذ يعتمد هذه النقطة كفخ في التصحيح النموذجي:</p>
+          <div style="background:rgba(75,21,53,0.4);border:1px solid rgba(209,131,169,0.3);border-radius:10px;padding:12px;">
+            <p style="font-size:13px;color:var(--queen-pink);font-weight:600;" dir="rtl">${q.trap_breakdown || q.explanation || ''}</p>
+          </div>
+        </div>`;
+    } else {
+      html = `
+        <div style="border-right:3px solid var(--danger);padding-right:14px;">
+          <p style="font-weight:700;color:var(--danger);margin-bottom:6px;" dir="ltr">wrong. be serious for a second -.-</p>
+          <p style="font-size:13px;color:var(--text-soft);" dir="rtl">إجابة خاطئة. ${q.explanation || ''}</p>
+        </div>`;
+    }
+    expBox.style.padding  = '20px 24px';
+    expBox.innerHTML = html;
+
+    /* Show nav */
+    const isLast = S.qIndex >= S.quiz.questions.length - 1;
+    document.getElementById(isLast ? 'q-submit' : 'q-next').style.display = 'inline-flex';
+  }
+
+  function nextQ() {
+    S.qIndex++;
+    renderQuestion();
+    document.getElementById('q-card').scrollIntoView({ behavior:'smooth', block:'start' });
+  }
+
+  async function submitQuiz() {
+    stopTimer();
+    const elapsed = Math.round((Date.now() - S.startTime) / 1000);
+    try {
+      const res  = await fetch('/api/quiz/' + S.quiz.quiz_id + '/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ answers: S.answers, time_taken_secs: elapsed }),
+      });
+      const data = await res.json();
+      showResult(data);
+    } catch (err) {
+      alert('خطأ في الإرسال: ' + err.message);
+    }
+  }
+
+  /* ─── TIMER ──────────────────────────────────────────────────────── */
+  function startTimer() {
+    let s = 0;
+    S.timerTick = setInterval(() => {
+      s++;
+      const m  = String(Math.floor(s/60)).padStart(2,'0');
+      const ss = String(s % 60).padStart(2,'0');
+      document.getElementById('q-timer').textContent = m + ':' + ss;
+    }, 1000);
+  }
+  function stopTimer() {
+    if (S.timerTick) clearInterval(S.timerTick);
+  }
+
+  /* ─── RESULT SCREEN ──────────────────────────────────────────────── */
+  function showResult(data) {
+    showPage('result');
+
+    const pct    = data.score_pct || 0;
+    const circum = 427;
+    const circle = document.getElementById('r-circle');
+    setTimeout(() => {
+      circle.style.strokeDashoffset = circum - (circum * pct / 100);
+    }, 150);
+    document.getElementById('r-pct').textContent = pct + '%';
+    document.getElementById('r-sub').textContent = data.correct + ' / ' + data.total;
+
+    const fb = data.feedback || {};
+    document.getElementById('r-feedback-en').textContent = fb.message || '';
+    document.getElementById('r-feedback-ar').textContent = pct >= 70
+      ? 'أداء ممتاز، أنت تستحق كل نقطة! 🌟'
+      : 'لا بأس — المحاولة القادمة ستكون أحسن بإذن الله.';
+
+    /* Wrong answers */
+    const wd = document.getElementById('r-wrongs');
+    wd.innerHTML = '';
+    const wrongs = data.wrong_answers || [];
+    if (wrongs.length) {
+      const hdr = document.createElement('h3');
+      hdr.style.cssText = 'font-size:16px;font-weight:700;color:white;margin-bottom:12px;';
+      hdr.dir = 'rtl';
+      hdr.textContent = `الأخطاء (${wrongs.length})`;
+      wd.appendChild(hdr);
+
+      wrongs.forEach(w => {
+        const div = document.createElement('div');
+        div.className = 'glass-card';
+        div.style.padding = '20px 22px';
+        div.innerHTML = `
+          <p style="font-size:14px;font-weight:600;color:white;margin-bottom:12px;" dir="rtl">${w.question}</p>
+          <div style="display:flex;flex-direction:column;gap:7px;font-size:13px;">
+            <div style="color:var(--danger);" dir="rtl">❌ إجابتك: ${w.chosen || 'لم تُجب'}</div>
+            <div style="color:var(--success);" dir="rtl">✅ الصواب: ${w.correct}</div>
+            ${w.is_trap ? `<div class="trap-badge" style="margin-top:4px;width:fit-content;" dir="rtl">⚠️ فخ: ${w.trap_breakdown || ''}</div>` : ''}
+            <div style="font-size:12px;color:var(--text-soft);margin-top:4px;" dir="rtl">${w.explanation || ''}</div>
+          </div>`;
+        wd.appendChild(div);
+      });
+    }
+    window.scrollTo({ top:0, behavior:'smooth' });
+  }
+
+  function retryQuiz() {
+    if (S.quiz) { S.qIndex = 0; S.answers = {}; S.startTime = Date.now(); launchQuiz(); }
+  }
+
+  function goHome() {
+    stopTimer();
+    S.files = []; renderFileList();
+    showPage('home');
+    loadHeroStats();
+  }
+
+  /* ─── DASHBOARD ──────────────────────────────────────────────────── */
+  async function loadDashboard() {
+    try {
+      const res  = await fetch('/api/analytics');
+      const data = await res.json();
+
+      if (!data || data.error || data.total_quizzes === 0) {
+        document.getElementById('db-empty').style.display      = '';
+        document.getElementById('db-stats-row').style.display  = 'none';
+        return;
+      }
+      document.getElementById('db-empty').style.display     = 'none';
+      document.getElementById('db-stats-row').style.display = '';
+
+      document.getElementById('db-total').textContent  = data.total_quizzes;
+      document.getElementById('db-avg').textContent    = data.average_score + '%';
+      document.getElementById('db-best').textContent   = data.best_score + '%';
+      document.getElementById('db-qcount').textContent = data.total_questions_answered;
+
+      /* snapshot on home */
+      ['snap-quizzes','snap-avg','snap-best'].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (id === 'snap-quizzes') el.textContent = data.total_quizzes;
+        if (id === 'snap-avg')     el.textContent = data.average_score + '%';
+        if (id === 'snap-best')    el.textContent = data.best_score + '%';
+      });
+
+      buildScoreChart(data.history);
+      buildLevelChart(data.level_distribution);
+      buildCalendar(data.history);
+      buildRecentList(data.history);
+
+    } catch(e) { console.error('Dashboard error:', e); }
+  }
+
+  function buildScoreChart(history) {
+    const ctx = document.getElementById('chart-scores').getContext('2d');
+    if (S.charts['scores']) S.charts['scores'].destroy();
+
+    S.charts['scores'] = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: history.map(h => h.date.slice(5)),
+        datasets: [{
+          data: history.map(h => h.score),
+          borderColor: '#D183A9',
+          backgroundColor: 'rgba(209,131,169,0.08)',
+          borderWidth: 2.5,
+          pointBackgroundColor: '#D183A9',
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          tension: 0.45,
+          fill: true,
+        }]
+      },
+      options: {
+        responsive:true, maintainAspectRatio:false,
+        plugins: { legend:{ display:false } },
+        scales: {
+          x: { ticks:{ color:'#8a6a9a', font:{size:10} }, grid:{ color:'rgba(58,52,91,0.3)' } },
+          y: { ticks:{ color:'#8a6a9a', font:{size:10} }, grid:{ color:'rgba(58,52,91,0.3)' }, min:0, max:100 },
+        }
+      }
+    });
+  }
+
+  function buildLevelChart(dist) {
+    const ctx = document.getElementById('chart-levels').getContext('2d');
+    if (S.charts['levels']) S.charts['levels'].destroy();
+    const keys = Object.keys(dist);
+    if (!keys.length) return;
+
+    S.charts['levels'] = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: keys,
+        datasets: [{
+          data: Object.values(dist),
+          backgroundColor: ['#3A345B','#71557A','#D183A9','#F3C8DD'],
+          borderWidth: 0,
+        }]
+      },
+      options: {
+        responsive:true, maintainAspectRatio:false,
+        cutout: '70%',
+        plugins: { legend:{ position:'bottom', labels:{ color:'#c4a8d4', font:{size:11}, padding:10 } } }
+      }
+    });
+  }
+
+  function buildCalendar(history) {
+    const grid    = document.getElementById('db-calendar');
+    grid.innerHTML = '';
+    const hasDates = new Set(history.map(h => h.date));
+    const today   = new Date();
+
+    for (let i = 29; i >= 0; i--) {
+      const d   = new Date(today);
+      d.setDate(d.getDate() - i);
+      const key = d.toISOString().slice(0,10);
+      const el  = document.createElement('div');
+      el.className = 'cal-cell' + (hasDates.has(key) ? ' has-data' : '') + (i === 0 ? ' today' : '');
+      el.title     = key;
+      el.textContent = d.getDate();
+      grid.appendChild(el);
+    }
+  }
+
+  function buildRecentList(history) {
+    const wrap = document.getElementById('db-recent-list');
+    wrap.innerHTML = '';
+    history.slice(-6).reverse().forEach(h => {
+      const div = document.createElement('div');
+      div.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:rgba(37,21,71,0.4);border:1px solid var(--border-soft);border-radius:10px;';
+      div.innerHTML = `
+        <div>
+          <div style="font-size:13px;color:white;font-weight:600;">${h.date}</div>
+          <div style="font-size:11px;color:var(--text-muted);">${h.correct}/${h.total} صحيح</div>
+        </div>
+        <div style="font-size:16px;font-weight:900;color:${h.score>=70?'var(--success)':'var(--danger)'};">${h.score}%</div>`;
+      wrap.appendChild(div);
+    });
+  }
+
+  /* ─── HISTORY ────────────────────────────────────────────────────── */
+  async function loadHistory() {
+    const res  = await fetch('/api/history?limit=20');
+    const data = await res.json();
+    const list = document.getElementById('hist-list');
+    list.innerHTML = '';
+    const quizzes = data.quizzes || [];
+
+    if (!quizzes.length) {
+      document.getElementById('hist-empty').style.display = '';
+      return;
+    }
+    document.getElementById('hist-empty').style.display = 'none';
+
+    quizzes.forEach(q => {
+      const div = document.createElement('div');
+      div.className = 'glass-card';
+      div.style.padding = '18px 22px';
+      div.style.display = 'flex';
+      div.style.alignItems = 'center';
+      div.style.justifyContent = 'space-between';
+      div.innerHTML = `
+        <div style="display:flex;align-items:center;gap:14px;">
+          <div style="font-size:28px;">${q.mode === 'cram' ? '⚡' : '📝'}</div>
+          <div>
+            <div style="font-size:14px;font-weight:700;color:white;" dir="rtl">
+              ${q.mode === 'cram' ? 'مراجعة سريعة' : 'اختبار عادي'} — ${q.detected_level || 'عام'}
+            </div>
+            <div style="font-size:12px;color:var(--text-muted);" dir="rtl">
+              ${q.question_count} سؤال · ${q.completed_at ? new Date(q.completed_at).toLocaleDateString('ar-DZ') : '—'}
+            </div>
+          </div>
+        </div>
+        <span class="trap-badge" style="background:rgba(37,21,71,0.5);">${q.detected_level || '—'}</span>`;
+      list.appendChild(div);
+    });
+  }
+
+  /* ─── HERO STATS ──────────────────────────────────────────────────── */
+  async function loadHeroStats() {
+    try {
+      const res  = await fetch('/api/analytics');
+      const data = await res.json();
+      if (!data || data.error) return;
+
+      animN('hs-quizzes',   data.total_quizzes);
+      animN('hs-questions', data.total_questions_answered);
+      document.getElementById('hs-avg').textContent =
+        data.total_quizzes > 0 ? data.average_score + '%' : '—';
+
+    } catch(_) {}
+  }
+
+  function animN(id, target) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const dur  = 900;
+    const step = target / (dur / 16);
+    let cur    = 0;
+    const t    = setInterval(() => {
+      cur = Math.min(cur + step, target);
+      el.textContent = Math.round(cur).toLocaleString('ar');
+      if (cur >= target) clearInterval(t);
+    }, 16);
+  }
+
+  /* ─── INIT ───────────────────────────────────────────────────────── */
+  document.addEventListener('DOMContentLoaded', () => {
+    loadHeroStats();
+  });
+  </script>
+</body>
+</html>
